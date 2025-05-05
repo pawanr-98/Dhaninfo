@@ -1,9 +1,11 @@
-FROM adoptopenjdk/openjdk11:jre-11.0.6_10-alpine
-
+FROM maven:3.9.6-eclipse-temurin-11 AS build
 WORKDIR /app
+COPY . .
+RUN mvn -f eureka-service/pom.xml clean package -DskipTests
 
-COPY ./target/eureka-service-0.0.1-SNAPSHOT.jar .
-
+FROM eclipse-temurin:11-jre-alpine
+WORKDIR /app
+COPY --from=build /app/eureka-service/target/*.jar app.jar
 EXPOSE 8761
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
-ENTRYPOINT ["java", "-jar", "eureka-service-0.0.1-SNAPSHOT.jar"]
