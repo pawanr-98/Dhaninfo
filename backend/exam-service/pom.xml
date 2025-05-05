@@ -27,8 +27,8 @@
         </dependency>
 	<dependency>
  	    <groupId>com.microservices</groupId>
- 	    <artifactId>commonexam</artifactId>
- 	    <version>1.0.0</version>
+ 	    <artifactId>common-exam</artifactId>
+ 	    <version>0.0.1-SNAPSHOT</version>
 	</dependency>
 
         <dependency>
