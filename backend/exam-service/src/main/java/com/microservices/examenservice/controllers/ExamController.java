@@ -1,6 +1,6 @@
 
 package com.microservices.examenservice.controllers;
-import com.microservices.examenservice.models.Exam;
+import com.microservices.examenservice.models.entity.Exam;
 
 import java.util.ArrayList;
 import java.util.List;
