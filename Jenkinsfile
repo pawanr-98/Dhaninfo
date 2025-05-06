@@ -16,7 +16,7 @@ pipeline {
 				script{
 					def changedFiles = sh(
 						script: 'git diff --name-only HEAD~1 HEAD',
-						returnStdout = true
+						returnStdout: true
 					).trim()
 					
 					echo "Changed Files:\n${changedFiles}"
