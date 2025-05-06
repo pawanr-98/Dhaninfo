@@ -2,7 +2,10 @@ pipeline {
     agent any
 
     environment {
-        FRONTEND_IMG = "frontend:latest"
+	FRONTEND_IMG = "frontend:latest"
+        BACKEND_CHANGED = 'false'
+        EUREKA_CHANGED = 'false'
+        GATEWAY_CHANGED = 'false'
     }
 
     stages {
@@ -11,92 +14,152 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/pawanr-98/Dhaninfo.git'
             }
         }
-
-        stage('Detect Changes') {
+		
+		stage('Detect frontend changes'){
+			steps {
+				script {
+					def changedFiles = sh(
+						script: 'git diff --name-only HEAD~1 HEAD',
+						returnStdout:true
+						).trim()
+					echo "changed Files:\n${changedFiles}"
+					
+					if (changedFiles.contains('frontend/')){
+						env.FRONTEND_CHANGED = 'true'
+					} else {
+						env.FRONTEND_CHANGED = 'false'
+					}
+				}
+			}
+		}
+		
+		stage('Build and Deploy Frontend'){
+			when {
+				expression { env.FRONTEND_CHANGED == 'true' } 
+			}	
+			steps{
+				script {
+					sh 'docker build -t ${env.FRONTEND_IMG} .'
+					sh 'docker rm -f frontend_cont'
+					sh 'docker run -d -p 80:80 --name frontend_cont ${env.FRONTEND_IMG}'
+				}		
+			}
+		}
+		
+        stage('Detect Changed Services') {
             steps {
                 script {
-                    def changes = sh(
-                        script: 'git diff --name-only HEAD~1 HEAD',
-                        returnStdout: true
-                    ).trim()
+                    def changedFiles = sh(script: "git diff --name-only HEAD~1 HEAD", returnStdout: true).trim()
+                    echo "Changed Files:\n${changedFiles}"
 
-                    echo "Changed Files:\n${changes}"
+                    if (changedFiles.contains('backend/eureka-service/')) {
+                        env.EUREKA_CHANGED = 'true'
+                        env.BACKEND_CHANGED = 'true'
+                    }
 
-                    // Backend service flags
-                    env.EUREKA_CHANGED = changes.contains('backend/eureka-service/') ? 'true' : 'false'
-                    env.API_GATEWAY_CHANGED = changes.contains('backend/api-gateway-service/') ? 'true' : 'false'
-                    env.USER_CHANGED = changes.contains('backend/user-service/') ? 'true' : 'false'
-                    env.EXAM_CHANGED = changes.contains('backend/exam-service/') ? 'true' : 'false'
-                    env.ZUUL_CHANGED = changes.contains('backend/zuul-service/') ? 'true' : 'false'
-                    env.ANSWER_CHANGED = changes.contains('backend/answer-service/') ? 'true' : 'false'
-                    env.COURSE_CHANGED = changes.contains('backend/course-service/') ? 'true' : 'false'
+                    if (changedFiles.contains('backend/api-gateway-service/')) {
+                        env.GATEWAY_CHANGED = 'true'
+                        env.BACKEND_CHANGED = 'true'
+                    }
 
-                    // DB flag: only if docker-compose.yml or db env changes
-                    env.DB_CHANGED = changes.contains('backend/docker-compose.yml') ? 'true' : 'false'
-
-                    // Frontend
-                    env.FRONTEND_CHANGED = changes.contains('frontend/') ? 'true' : 'false'
-                }
-            }
-        }
-
-        stage('Build & Deploy Backend Services') {
-            when {
-                expression {
-                    return env.EUREKA_CHANGED == 'true' ||
-                           env.API_GATEWAY_CHANGED == 'true' ||
-                           env.USER_CHANGED == 'true' ||
-                           env.EXAM_CHANGED == 'true' ||
-                           env.ZUUL_CHANGED == 'true' ||
-                           env.ANSWER_CHANGED == 'true' ||
-                           env.COURSE_CHANGED == 'true' ||
-                           env.DB_CHANGED == 'true'
-                }
-            }
-            steps {
-                dir('backend') {
-                    script {
-                        // Create list of services to build
-                        def services = []
-
-                        if (env.EUREKA_CHANGED == 'true') {
-                            services = ['eureka-service', 'api-gateway-service', 'user-service', 'exam-service', 'answer-service', 'course-service', 'zuul-service']
-                        } else if (env.API_GATEWAY_CHANGED == 'true') {
-                            services = ['api-gateway-service', 'user-service', 'exam-service', 'answer-service', 'course-service', 'zuul-service']
-                        } else {
-                            if (env.USER_CHANGED == 'true') services.add('user-service')
-                            if (env.EXAM_CHANGED == 'true') services.add('exam-service')
-                            if (env.ZUUL_CHANGED == 'true') services.add('zuul-service')
-                            if (env.ANSWER_CHANGED == 'true') services.add('answer-service')
-                            if (env.COURSE_CHANGED == 'true') services.add('course-service')
+                    def services = ['user-service', 'course-service', 'exam-service', 'answer-service', 'zuul-service']
+                    for (svc in services) {
+                        if (changedFiles.contains("backend/${svc}/")) {
+                            env."${svc.replace('-', '_').toUpperCase()}_CHANGED" = 'true'
+                            env.BACKEND_CHANGED = 'true'
                         }
-
-                        // If DB changed (docker-compose.yml or base infra), add DBs
-                        if (env.DB_CHANGED == 'true') {
-                            services.add('mysql')
-                            services.add('postgres')
-                        }
-
-                        echo "Building services: ${services.join(', ')}"
-
-                        sh "docker-compose down || true"
-                        sh "docker-compose build ${services.join(' ')}"
-                        sh "docker-compose up -d ${services.join(' ')}"
                     }
                 }
             }
         }
 
-        stage('Build & Run Frontend') {
+        stage('Ensure Base Services Running') {
             when {
-                expression { env.FRONTEND_CHANGED == 'true' }
+                expression { env.BACKEND_CHANGED == 'true' }
             }
             steps {
-                dir('frontend') {
-                    sh "docker build -t ${env.FRONTEND_IMG} ."
+                script {
+                    def baseServices = ['mysql', 'postgres', 'eureka-service']
+                    for (svc in baseServices) {
+                        def running = sh(script: "docker ps -q -f name=${svc}", returnStdout: true).trim()
+                        if (running == '') {
+                            echo "${svc} not running. Starting..."
+                            sh "docker-compose -f backend/docker-compose.yml up -d ${svc}"
+                        } else {
+                            echo "${svc} is already running."
+                        }
+                    }
                 }
-                sh "docker rm -f frontend_cont || true"
-                sh "docker run -d -p 80:80 --name frontend_cont ${env.FRONTEND_IMG}"
+            }
+        }
+
+        stage('Full Backend Rebuild (Eureka changed)') {
+            when {
+                expression { env.EUREKA_CHANGED == 'true' }
+            }
+            steps {
+                script {
+                    echo "Rebuilding ALL services due to Eureka change..."
+                    sh 'docker-compose -f backend/docker-compose.yml down'
+                    sh 'docker-compose -f backend/docker-compose.yml build'
+                    sh 'docker-compose -f backend/docker-compose.yml up -d'
+                }
+            }
+        }
+
+        stage('Partial Backend Rebuild (API Gateway changed)') {
+            when {
+                expression { env.GATEWAY_CHANGED == 'true' && env.EUREKA_CHANGED != 'true' }
+            }
+            steps {
+                script {
+                    def services = ['user-service', 'course-service', 'exam-service', 'answer-service', 'zuul-service', 'api-gateway-service']
+                    for (svc in services) {
+                        echo "Rebuilding ${svc}..."
+                        sh """
+                            docker-compose -f backend/docker-compose.yml stop ${svc} || true
+                            docker-compose -f backend/docker-compose.yml rm -f ${svc} || true
+                            docker-compose -f backend/docker-compose.yml build ${svc}
+                            docker-compose -f backend/docker-compose.yml up -d ${svc}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Selective Microservice Rebuild') {
+            when {
+                expression { env.EUREKA_CHANGED != 'true' && env.GATEWAY_CHANGED != 'true' }
+            }
+            steps {
+                script {
+                    def services = ['user-service', 'course-service', 'exam-service', 'answer-service', 'zuul-service', 'api-gateway-service']
+                    for (svc in services) {
+                        def envVar = "${svc.replace('-', '_').toUpperCase()}_CHANGED"
+                        if (env[envVar] == 'true') {
+                            echo "Rebuilding ${svc}..."
+                            sh """
+                                docker-compose -f backend/docker-compose.yml stop ${svc} || true
+                                docker-compose -f backend/docker-compose.yml rm -f ${svc} || true
+                                docker-compose -f backend/docker-compose.yml build ${svc}
+                                docker-compose -f backend/docker-compose.yml up -d ${svc}
+                            """
+                        } else {
+                            echo "${svc} not changed. Skipping..."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('No Changes Detected') {
+            when {
+                expression {
+                    return env.BACKEND_CHANGED != 'true'
+                }
+            }
+            steps {
+                echo "No changes detected in backend. Skipping build and deployment."
             }
         }
     }
