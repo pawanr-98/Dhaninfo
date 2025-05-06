@@ -8,9 +8,29 @@ pipeline {
 	stages {
 		stage('git checkout'){
 			steps {
-				git branch: 'main', url: 'https://github.com/pawanr-98/Dhaninfo.git'	
+				git branch: 'main', url: 'https://github.com/pawanr-98/Dhaninfo.git' 	
 				}				
 			}
+		stage('Check frontend changes'){
+			steps{
+				script{
+					def changedFiles = sh(
+						script: 'git diff --name-only HEAD~1 HEAD',
+						returnStdout = true
+					).trim()
+					
+					echo "Changed Files:\n${changedFiles}"
+					
+					if(changedFiles.contains('frontend/')){
+						echo "frontend has changed"
+						env.FRONTEND_CHANGED = 'true'
+					} else {
+						echo "No changes in frontend"
+						env.FRONTEND_CHANGED = 'false'
+					} 
+				}
+			}
+		}
 		
 		stage ('docker compose build'){
 			steps {
@@ -24,18 +44,25 @@ pipeline {
 				}
 			}
 		stage('Frontend build'){
+			when {
+				expression { env.FRONTEND_CHANGED == 'true' }
+			}
 			steps {
 				dir ('frontend'){
 					script {
-						sh 'docker build -t $FRONTEND_IMG .'
+						sh 'docker build -t ${env.FRONTEND_IMG} .'
 						}
 					}
 				}
 			}
 		stage('Run frontend container'){
+			when {
+				expression { env.FRONTEND_CHANGED == 'true' }
+			}
 			steps {
 				script{
-					sh 'docker run -d -p 80:80 --name frontend_cont $FRONTEND_IMG'
+					sh 'docker rm -f frontend_cont || true'
+					sh 'docker run -d -p 80:80 --name frontend_cont ${env.FRONTEND_IMG}'
 				}
 			}	
 		}
