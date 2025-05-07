@@ -1,6 +1,6 @@
 
 server:
-  port: 8090
+  port: 8091
 spring:
   application:
     name: zuul-service
@@ -14,7 +14,7 @@ zuul:
   routes:
     user-service:
       path: /api/students/**
-      url: http://localhost:8080/students/
+      url: http://localhost:8084/students/
       serviceId: user-service
     course-service:
       path: /api/courses/**
