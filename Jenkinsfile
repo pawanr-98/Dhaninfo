@@ -50,7 +50,9 @@ pipeline {
 			steps {
 				dir ('frontend'){
 					script {
-						sh 'docker build -t ${env.FRONTEND_IMG} .'
+						sh """#!/bin/bash
+						docker build -t ${env.FRONTEND_IMG} .
+						"""
 						}
 					}
 				}
@@ -61,8 +63,10 @@ pipeline {
 			}
 			steps {
 				script{
-					sh 'docker rm -f frontend_cont || true'
-					sh 'docker run -d -p 8090:8090 --name frontend_cont ${env.FRONTEND_IMG}'
+					sh """#!/bin/bash
+     					docker rm -f frontend_cont || true
+					docker run -d -p 8090:8090 --name frontend_cont ${env.FRONTEND_IMG}
+     					"""
 				}
 			}	
 		}
