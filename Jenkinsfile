@@ -62,7 +62,7 @@ pipeline {
 			steps {
 				script{
 					sh 'docker rm -f frontend_cont || true'
-					sh 'docker run -d -p 80:80 --name frontend_cont ${env.FRONTEND_IMG}'
+					sh 'docker run -d -p 8084:8084 --name frontend_cont ${env.FRONTEND_IMG}'
 				}
 			}	
 		}
