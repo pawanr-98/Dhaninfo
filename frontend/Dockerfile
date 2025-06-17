@@ -26,7 +26,7 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy Angular build files to Nginx web folder
 COPY --from=build /app/dist/demo /usr/share/nginx/html/
 
-EXPOSE 80
+EXPOSE 8084
 
 CMD ["nginx", "-g", "daemon off;"]
 
