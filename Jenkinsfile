@@ -32,7 +32,7 @@ pipeline {
 			}
 		}
 		
-		stage ('docker compose build'){
+		/*stage ('docker compose build'){
 			steps {
 				dir('backend'){
 					script {
@@ -42,7 +42,7 @@ pipeline {
 						}
 					}
 				}
-			}
+			}*/
 		stage('Frontend build'){
 			when {
 				expression { env.FRONTEND_CHANGED == 'true' }
