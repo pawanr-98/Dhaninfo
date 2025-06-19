@@ -8,6 +8,13 @@ services:
       MYSQL_ROOT_PASSWORD: password
     ports:
       - "3306:3306"
+      
+  api-gateway-service:
+    build:
+      context: .
+      dockerfile: api-gateway-service/Dockerfile
+    ports:
+      - "8090:8090"
 
   postgres:
     image: postgres:13
@@ -84,16 +91,3 @@ services:
       - eureka-service
 
   # Optional if you're using api-gateway-service instead
-  api-gateway-service:
-    build:
-      context: .
-      dockerfile: api-gateway-service/Dockerfile
-    ports:
-      - "8090:8090"
-    depends_on:
-      - user-service
-      - course-service
-      - exam-service
-      - answer-service
-      - eureka-service
-
