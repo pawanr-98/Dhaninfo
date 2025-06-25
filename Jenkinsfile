@@ -1,9 +1,9 @@
 pipeline {
-	agent any
+	agent { label 'master-node'}
 	
-	environment {
-		FRONTEND_IMG = "frontend:latest"
-	}
+	//environment {
+	//	FRONTEND_IMG = "frontend:latest"
+	//}
 	
 	stages {
 		stage('git checkout'){
@@ -11,7 +11,7 @@ pipeline {
 				git branch: 'main', url: 'https://github.com/pawanr-98/Dhaninfo.git' 	
 				}				
 			}
-		stage('Check frontend changes'){
+		/*stage('Check frontend changes'){
 			steps{
 				script{
 					def changedFiles = sh(
@@ -43,7 +43,7 @@ pipeline {
 					}
 				}
 			}*/
-		stage('Frontend build'){
+		/*stage('Frontend build'){
 			when {
 				expression { env.FRONTEND_CHANGED == 'true' }
 			}
@@ -69,7 +69,7 @@ pipeline {
      					"""
 				}
 			}	
-		}
+		}*/
 	}
 }	
 
