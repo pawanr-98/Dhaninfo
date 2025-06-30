@@ -12,6 +12,7 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 git branch: 'main', credentialsId: 'github', url: 'https://github.com/pawanr-98/Dhaninfo.git'
+                sh 'git fetch origin'
             }
         }
 
@@ -22,10 +23,10 @@ pipeline {
                     def lastCommitFile = 'last_deployed/frontend.txt'
                     sh 'mkdir -p last_deployed'
                     if (!fileExists(lastCommitFile)) {
-                        sh 'git rev-parse HEAD > ' + lastCommitFile
+                        sh 'git rev-list --max-parents=0 origin/main > ' + lastCommitFile
                     }
                     def lastCommit = readFile(lastCommitFile).trim()
-                    def changed = sh(script: "git diff --name-only ${lastCommit}..HEAD frontend/", returnStdout: true).trim()
+                    def changed = sh(script: "git diff --name-only ${lastCommit} origin/main -- frontend/", returnStdout: true).trim()
 
                     if (changed) {
                         echo "Changes detected in frontend"
@@ -39,7 +40,7 @@ pipeline {
                                 docker logout
                             '''
                         }
-                        sh 'git rev-parse HEAD > ' + lastCommitFile
+                        sh 'git rev-parse origin/main > ' + lastCommitFile
                     } else {
                         echo 'No changes detected in frontend'
                     }
@@ -63,7 +64,7 @@ pipeline {
             }
         }
 
-        stage('Eureka Build') {
+      /*  stage('Eureka Build') {
             agent { label 'built-in' }
             steps {
                 script {
@@ -108,6 +109,6 @@ pipeline {
                 kubectl rollout status deployment/eureka-service -n dr
                 '''
             }
-        }
+        }*/
     }
 }
