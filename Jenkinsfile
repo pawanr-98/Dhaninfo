@@ -7,6 +7,7 @@ pipeline {
         stage('Git Checkout') {
             agent { label 'built-in' }
             steps {
+                cleanWs()
                 git branch: 'main', credentialsId: 'github', url: 'https://github.com/pawanr-98/Dhaninfo.git'
                 sh 'git fetch origin'
             }
