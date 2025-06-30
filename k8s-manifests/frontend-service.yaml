@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: dr-frontend-service
+  namespace: dr
+spec:
+  selector:
+      app: dr-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: clusterIP

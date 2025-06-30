@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dr-frontend
+  namespace: dr
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dr-frontend
+  template:
+    metadata:
+      labels:
+        app: dr-frontend
+    spec:
+      containers:
+        - name: dr-frontend
+          image: pdock855/dr-frontend:placeholder
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+    
