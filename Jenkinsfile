@@ -2,11 +2,7 @@ pipeline {
     agent none
     environment {
         DOCKER_IMAGE = "pdock855/dr-front:${BUILD_NUMBER}"
-        EUREKA_IMAGE = "pdock855/eureka:${BUILD_NUMBER}"
-        FRONTEND_CHANGES = "false"
-        EUREKA_CHANGES = "false"
     }
-
     stages {
         stage('Git Checkout') {
             agent { label 'built-in' }
@@ -16,10 +12,11 @@ pipeline {
             }
         }
 
-        stage('Frontend Build') {
+        stage('Frontend Build and Deploy') {
             agent { label 'built-in' }
             steps {
                 script {
+                    def frontendChanged = false
                     def lastCommitFile = 'last_deployed/frontend.txt'
                     sh 'mkdir -p last_deployed'
                     if (!fileExists(lastCommitFile)) {
@@ -30,7 +27,7 @@ pipeline {
 
                     if (changed) {
                         echo "Changes detected in frontend"
-                        env.FRONTEND_CHANGES = 'true'
+                        frontendChanged = true
                         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                             sh '''
                                 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
@@ -44,25 +41,23 @@ pipeline {
                     } else {
                         echo 'No changes detected in frontend'
                     }
+
+                    if (frontendChanged) {
+                        node('master-node') {
+                            sh '''
+                            kubectl apply -f k8s-manifests/frontend-deployment.yaml -n dr
+                            kubectl apply -f k8s-manifests/frontend-service.yaml -n dr
+                            kubectl apply -f k8s-manifests/frontend-ingress.yaml -n dr
+                            kubectl set image deployment/dr-frontend dr-frontend=$DOCKER_IMAGE -n dr
+                            kubectl rollout status deployment/dr-frontend -n dr
+                            '''
+                        }
+                    }
                 }
             }
         }
-
-        stage('Deploy Frontend') {
-            when {
-                expression { return env.FRONTEND_CHANGES == 'true' }
-            }
-            agent { label 'master-node' }
-            steps {
-                sh '''
-                kubectl apply -f k8s-manifests/frontend-deployment.yaml -n dr
-                kubectl apply -f k8s-manifests/frontend-service.yaml -n dr
-                kubectl apply -f k8s-manifests/frontend-ingress.yaml -n dr
-                kubectl set image deployment/dr-frontend dr-frontend=$DOCKER_IMAGE -n dr
-                kubectl rollout status deployment/dr-frontend -n dr
-                '''
-            }
-        }
+    }
+}
 
       /*  stage('Eureka Build') {
             agent { label 'built-in' }
@@ -109,6 +104,6 @@ pipeline {
                 kubectl rollout status deployment/eureka-service -n dr
                 '''
             }
-        }*/
+        }
     }
 }
