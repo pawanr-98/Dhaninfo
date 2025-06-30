@@ -46,6 +46,7 @@ pipeline {
                         node('master-node') {
                             sh '''
                             kubectl apply -f k8s-manifests/frontend-deployment.yaml -n dr
+                            kubectl delete service dr-frontend-service -n dr
                             kubectl apply -f k8s-manifests/frontend-service.yaml -n dr
                             kubectl apply -f k8s-manifests/frontend-ingress.yaml -n dr
                             kubectl set image deployment/dr-frontend dr-frontend=$DOCKER_IMAGE -n dr
