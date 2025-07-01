@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dr-eureka-service
+  name: dr-eureka
   namespace: dr
 spec:
   replicas: 2
