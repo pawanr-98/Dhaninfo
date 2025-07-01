@@ -148,8 +148,8 @@ def detectAndDeploy(Map args) {
 
                     if (frontendChanged) {
                         node('master-node') {
-                            /*cleanWs()*/
-                           /* checkout scm
+                            cleanWs()
+                            checkout scm
                             sh '''
                             kubectl apply -f k8s-manifests/frontend-deployment.yaml -n dr
                             kubectl apply -f k8s-manifests/fend-service.yaml -n dr
@@ -163,6 +163,4 @@ def detectAndDeploy(Map args) {
             }
         }
     }
-}
-
-      /*  
+}/*
