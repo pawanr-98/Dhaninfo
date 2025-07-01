@@ -5,10 +5,9 @@ metadata:
    namespace: dr
 spec:
    selector:
-     labels:
        app: eureka-service
    ports:
      - protocol: TCP
        port: 80
        targetPort: 8761
-   type: clusterIP
+   type: ClusterIP
