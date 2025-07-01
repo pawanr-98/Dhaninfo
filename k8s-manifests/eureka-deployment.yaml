@@ -16,7 +16,7 @@ spec:
       imagePullSecrets:
         - name: regcred
       containers:
-        - name: eureka-service
+        - name: dr-eureka
           image: pdock855/eureka:placeholder
           imagePullPolicy: Always
           ports:
