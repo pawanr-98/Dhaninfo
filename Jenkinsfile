@@ -1,5 +1,109 @@
 pipeline {
     agent none
+
+    environment {
+        DOCKER_REPO = 'pdock855' // Docker Hub username 
+    }
+
+    stages {
+
+        stage('Git Checkout') {
+            agent { label 'built-in' }
+            steps {
+                //cleanWs()
+                git branch: 'main', credentialsId: 'github', url: 'https://github.com/pawanr-98/Dhaninfo.git'
+            }
+        }
+
+        stage('Frontend: Build & Deploy') {
+            agent { label 'built-in' }
+            steps {
+                script {
+                    detectAndDeploy(
+                        serviceName: "frontend",
+                        dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
+                        servicePath: "frontend",
+                        k8sFiles: [
+                            "k8s-manifests/frontend-deployment.yaml",
+                            "k8s-manifests/fend-service.yaml",
+                            "k8s-manifests/frontend-ingress.yaml"
+                        ]
+                    )
+                }
+            }
+        }
+
+        stage('Eureka: Build & Deploy') {
+            agent { label 'built-in' }
+            steps {
+                script {
+                    detectAndDeploy(
+                        serviceName: "eureka",
+                        dockerImageTag: "${DOCKER_REPO}/dr-eureka:${BUILD_NUMBER}",
+                        servicePath: "backend/eureka-service",
+                        k8sFiles: [
+                            "k8s-manifests/eureka-deployment.yaml",
+                            "k8s-manifests/eureka-kservice.yaml"
+                        ]
+                    )
+                }
+            }
+        }
+    }
+}
+
+//  Reusable deployment logic
+def detectAndDeploy(Map args) {
+    def serviceName     = args.serviceName
+    def dockerImageTag  = args.dockerImageTag
+    def servicePath     = args.servicePath
+    def k8sFiles        = args.k8sFiles
+
+    def lastCommitFile = "last_deployed/${serviceName}.txt"
+    def changed = false
+
+    sh "mkdir -p last_deployed"
+    if (!fileExists(lastCommitFile)) {
+        sh "git rev-list --max-parents=0 origin/main > ${lastCommitFile}"
+    }
+
+    def lastCommit = readFile(lastCommitFile).trim()
+    def changeOutput = sh(script: "git diff --name-only ${lastCommit} origin/main -- ${servicePath}/", returnStdout: true).trim()
+
+    if (changeOutput) {
+        echo "Changes detected in ${serviceName}"
+        changed = true
+
+        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh """
+                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                cd ${servicePath}
+                docker build -t ${dockerImageTag} .
+                docker push ${dockerImageTag}
+                docker logout
+            """
+        }
+
+        sh "git rev-parse origin/main > ${lastCommitFile}"
+    } else {
+        echo "No changes in ${serviceName}. Skipping build and deploy."
+    }
+
+    if (changed) {
+        node('master-node') {
+            checkout scm
+            k8sFiles.each { file ->
+                sh "kubectl apply -f ${file} -n dr"
+            }
+            sh "kubectl set image deployment/dr-${serviceName} dr-${serviceName}=${dockerImageTag} -n dr"
+            sh "kubectl rollout status deployment/dr-${serviceName} -n dr"
+        }
+    }
+}
+
+
+/*pipeline {
+    agent none
     environment {
         DOCKER_IMAGE = "pdock855/dr-front:${BUILD_NUMBER}"
     }
@@ -45,7 +149,7 @@ pipeline {
                     if (frontendChanged) {
                         node('master-node') {
                             /*cleanWs()*/
-                            checkout scm
+                           /* checkout scm
                             sh '''
                             kubectl apply -f k8s-manifests/frontend-deployment.yaml -n dr
                             kubectl apply -f k8s-manifests/fend-service.yaml -n dr
@@ -61,51 +165,4 @@ pipeline {
     }
 }
 
-      /*  stage('Eureka Build') {
-            agent { label 'built-in' }
-            steps {
-                script {
-                    def lastCommitFile = 'last_deployed/eureka-service.txt'
-                    sh 'mkdir -p last_deployed'
-                    if (!fileExists(lastCommitFile)) {
-                        sh 'git rev-parse HEAD > ' + lastCommitFile
-                    }
-                    def lastCommit = readFile(lastCommitFile).trim()
-                    def changed = sh(script: "git diff --name-only ${lastCommit}..HEAD backend/eureka-service/", returnStdout: true).trim()
-
-                    if (changed) {
-                        echo "Changes detected in eureka-service"
-                        env.EUREKA_CHANGES = 'true'
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            sh '''
-                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                                cd backend/eureka-service
-                                docker build -t $EUREKA_IMAGE .
-                                docker push $EUREKA_IMAGE
-                                docker logout
-                            '''
-                        }
-                        sh 'git rev-parse HEAD > ' + lastCommitFile
-                    } else {
-                        echo 'No changes detected in eureka-service'
-                    }
-                }
-            }
-        }
-
-        stage('Deploy Eureka') {
-            when {
-                expression { return env.EUREKA_CHANGES == 'true' }
-            }
-            agent { label 'master-node' }
-            steps {
-                sh '''
-                kubectl apply -f k8s-manifests/eureka-deployment.yaml -n dr
-                kubectl apply -f k8s-manifests/eureka-kservice.yaml -n dr
-                kubectl set image deployment/eureka-service eureka-service=$EUREKA_IMAGE -n dr
-                kubectl rollout status deployment/eureka-service -n dr
-                '''
-            }
-        }
-    }
-}*/
+      /*  
