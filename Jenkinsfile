@@ -39,7 +39,7 @@ pipeline {
                 script {
                     detectAndDeploy(
                         serviceName: "eureka",
-                        dockerImageTag: "${DOCKER_REPO}/dr-eureka:${BUILD_NUMBER}",
+                        dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
                         servicePath: "backend/eureka-service",
                         k8sFiles: [
                             "k8s-manifests/eureka-deployment.yaml",
