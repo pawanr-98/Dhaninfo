@@ -7,7 +7,6 @@ pipeline {
         stage('Git Checkout') {
             agent { label 'built-in' }
             steps {
-                cleanWs()
                 git branch: 'main', credentialsId: 'github', url: 'https://github.com/pawanr-98/Dhaninfo.git'
                 sh 'git fetch origin'
             }
@@ -45,7 +44,7 @@ pipeline {
 
                     if (frontendChanged) {
                         node('master-node') {
-                            cleanWs()
+                            /*cleanWs()*/
                             checkout scm
                             sh '''
                             kubectl apply -f k8s-manifests/frontend-deployment.yaml -n dr
