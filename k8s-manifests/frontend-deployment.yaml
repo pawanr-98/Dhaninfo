@@ -13,6 +13,8 @@ spec:
       labels:
         app: dr-frontend
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: dr-frontend
           image: pdock855/dr-frontend:placeholder
