@@ -19,10 +19,12 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
+                    def serviceName: "frontend"
+                    def dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
                     detectAndDeploy(
-                        serviceName: "frontend",
+                        serviceName: serviceName,
                        // dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
-                        dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}",
+                        dockerImageTag: dockerImageTag,
                         servicePath: "frontend",
                         k8sFiles: [
                             "k8s-manifests/frontend-deployment.yaml",
@@ -38,10 +40,12 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
+                    def serviceName: "eureka"
+                    def dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
                     detectAndDeploy(
-                        serviceName: "eureka",
+                        serviceName: serviceName,
                         //dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
-                        dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}",
+                        dockerImageTag: dockerImageTag,
                         servicePath: "backend/eureka-service",
                         k8sFiles: [
                             "k8s-manifests/eureka-deployment.yaml",
