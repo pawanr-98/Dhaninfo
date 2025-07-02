@@ -19,8 +19,8 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
-                    def serviceName: "frontend"
-                    def dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
+                    def serviceName = "frontend"
+                    def dockerImageTag = "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
                     detectAndDeploy(
                         serviceName: serviceName,
                        // dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
@@ -40,8 +40,8 @@ pipeline {
             agent { label 'built-in' }
             steps {
                 script {
-                    def serviceName: "eureka"
-                    def dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
+                    def serviceName = "eureka"
+                    def dockerImageTag = "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
                     detectAndDeploy(
                         serviceName: serviceName,
                         //dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
