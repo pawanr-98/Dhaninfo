@@ -21,7 +21,8 @@ pipeline {
                 script {
                     detectAndDeploy(
                         serviceName: "frontend",
-                        dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
+                       // dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
+                        dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
                         servicePath: "frontend",
                         k8sFiles: [
                             "k8s-manifests/frontend-deployment.yaml",
@@ -39,7 +40,8 @@ pipeline {
                 script {
                     detectAndDeploy(
                         serviceName: "eureka",
-                        dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
+                        //dockerImageTag: "${DOCKER_REPO}/dr-front:${BUILD_NUMBER}",
+                        dockerImageTag: "${DOCKER_REPO}/dr-front:${serviceName}-build-${BUILD_NUMBER}"
                         servicePath: "backend/eureka-service",
                         k8sFiles: [
                             "k8s-manifests/eureka-deployment.yaml",
